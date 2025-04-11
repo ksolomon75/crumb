@@ -21,12 +21,12 @@ class Crumb
      */
     protected $breadcrumb = [];
 
-   /**
-    * Initialize the Crumb instance.
-    *
-    * @param  array $config
-    * @return void
-    */
+    /**
+     * Initialize the Crumb instance.
+     *
+     * @param  array $config
+     * @return void
+     */
     public function __construct(array $config)
     {
         $this->config = $config;
@@ -82,34 +82,27 @@ class Crumb
             home_url()
         );
 
-        if (
-            is_home() &&
-            ! empty($this->config['blog'])
-        ) {
-            return $this->add(
-                $this->config['blog']
-            );
+        if (is_home() && !empty($this->config['blog'])) {
+            return $this->add($this->config['blog']);
         }
 
         if (is_page()) {
-            $ancestors = collect(
-                get_ancestors(get_the_ID(), 'page')
-            )->reverse();
+            $ancestors = collect(get_ancestors(get_the_ID(), 'page'))->reverse();
 
             if ($ancestors->isNotEmpty()) {
-                $ancestors->each(function ($item) {
-                    $this->add(
-                        get_the_title($item),
-                        get_permalink($item),
-                        $item
-                    );
-                });
+            $ancestors->each(function ($item) {
+                $this->add(
+                get_the_title($item),
+                get_permalink($item),
+                $item
+                );
+            });
             }
 
             return $this->add(
-                get_the_title(),
-                null,
-                get_the_ID()
+            get_the_title(),
+            null,
+            get_the_ID()
             );
         }
 
@@ -117,10 +110,10 @@ class Crumb
             $category = single_cat_title('', false);
 
             return $this->add(
-                $category,
-                null,
-                get_cat_ID($category),
-                true
+            $category,
+            null,
+            get_cat_ID($category),
+            true
             );
         }
 
@@ -128,37 +121,37 @@ class Crumb
             $tag = single_tag_title('', false);
 
             return $this->add(
-                $tag,
-                null,
-                get_term_by('name', $tag, 'post_tag')->term_id,
-                true
+            $tag,
+            null,
+            get_term_by('name', $tag, 'post_tag')->term_id,
+            true
             );
         }
 
         if (is_date()) {
             if (is_month()) {
-                return $this->add(
-                    get_the_date('F Y'),
-                    null,
-                    null,
-                    true
-                );
-            }
-
-            if (is_year()) {
-                return $this->add(
-                    get_the_date('Y'),
-                    null,
-                    null,
-                    true
-                );
-            }
-
             return $this->add(
-                get_the_date(),
+                get_the_date('F Y'),
                 null,
                 null,
                 true
+            );
+            }
+
+            if (is_year()) {
+            return $this->add(
+                get_the_date('Y'),
+                null,
+                null,
+                true
+            );
+            }
+
+            return $this->add(
+            get_the_date(),
+            null,
+            null,
+            true
             );
         }
 
@@ -166,83 +159,99 @@ class Crumb
             $term = single_term_title('', false);
 
             return $this->add(
-                $term,
-                null,
-                get_term_by('name', $term, get_query_var('taxonomy'))->term_id
+            $term,
+            null,
+            get_term_by('name', $term, get_query_var('taxonomy'))->term_id
             );
         }
 
         if (is_search()) {
             return $this->add(
-                sprintf($this->config['search'], get_search_query())
+            sprintf($this->config['search'], get_search_query())
             );
         }
 
         if (is_author()) {
             return $this->add(
-                sprintf($this->config['author'], get_the_author()),
-                null,
-                get_the_author_meta('ID'),
-                true
+            sprintf($this->config['author'], get_the_author()),
+            null,
+            get_the_author_meta('ID'),
+            true
             );
         }
 
         if (is_post_type_archive()) {
             return $this->add(
-                post_type_archive_title('', false)
+            post_type_archive_title('', false)
             );
         }
 
         if (is_404()) {
             return $this->add(
-                $this->config['not_found']
+            $this->config['not_found']
             );
         }
 
-        if (is_singular('post')) {
-            $categories = get_the_category(get_the_ID());
+        if (is_singular()) {
+            $postType = get_post_type();
+            $postTypeObject = get_post_type_object($postType);
 
-            if (! empty($categories)) {
-                foreach ($categories as $index => $category) {
-                    $this->add(
-                        $category->name,
-                        get_category_link($category),
-                        $category->term_id,
-                        $index === 0
-                    );
-                }
-
-                return $this->add(
-                    get_the_title(),
-                    null,
-                    get_the_ID()
+          // Add post type archive link if it exists
+            if ($postTypeObject && !empty($postTypeObject->has_archive)) {
+                $this->add(
+                    $postTypeObject->label,
+                    get_post_type_archive_link($postType)
                 );
             }
 
+          // Add custom taxonomy terms
+            $taxonomies = get_object_taxonomies($postType, 'objects');
+            foreach ($taxonomies as $taxonomy) {
+                if ($taxonomy->public) {
+                    $terms = get_the_terms(get_the_ID(), $taxonomy->name);
+                    if (!empty($terms) && !is_wp_error($terms)) {
+                        if ($taxonomy->hierarchical) {
+                            // Handle hierarchical taxonomies
+                            $term = array_shift($terms); // Get the first term
+                            $ancestors = get_ancestors($term->term_id, $taxonomy->name);
+
+                            // Add ancestor terms
+                            foreach (array_reverse($ancestors) as $ancestorId) {
+                                $ancestor = get_term($ancestorId, $taxonomy->name);
+                                $this->add(
+                                    $ancestor->name,
+                                    get_term_link($ancestor, $taxonomy->name),
+                                    $ancestor->term_id
+                                );
+                            }
+
+                            // Add the current term
+                            $this->add(
+                                $term->name,
+                                get_term_link($term, $taxonomy->name),
+                                $term->term_id
+                            );
+                        } else {
+                            // Handle non-hierarchical taxonomies
+                            foreach ($terms as $term) {
+                                $this->add(
+                                    $term->name,
+                                    get_term_link($term, $taxonomy->name),
+                                    $term->term_id
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+
+          // Add the current post
             return $this->add(
                 get_the_title(),
                 null,
-                get_the_ID(),
-                true
+                get_the_ID()
             );
         }
-
-        $type = get_post_type_object(
-            get_post_type()
-        );
-
-        if (! empty($type)) {
-            $this->add(
-                $type->label,
-                get_post_type_archive_link($type->name),
-                get_queried_object_id()
-            );
-        }
-
-        return $this->add(
-            get_the_title(),
-            null,
-            get_the_ID()
-        );
+        return $this->breadcrumb;
     }
 }
