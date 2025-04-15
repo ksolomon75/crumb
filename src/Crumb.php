@@ -21,12 +21,12 @@ class Crumb
      */
     protected $breadcrumb = [];
 
-    /**
-     * Initialize the Crumb instance.
-     *
-     * @param  array $config
-     * @return void
-     */
+   /**
+    * Initialize the Crumb instance.
+    *
+    * @param  array $config
+    * @return void
+    */
     public function __construct(array $config)
     {
         $this->config = $config;
@@ -82,27 +82,34 @@ class Crumb
             home_url()
         );
 
-        if (is_home() && !empty($this->config['blog'])) {
-            return $this->add($this->config['blog']);
+        if (
+            is_home() &&
+            ! empty($this->config['blog'])
+        ) {
+            return $this->add(
+                $this->config['blog']
+            );
         }
 
         if (is_page()) {
-            $ancestors = collect(get_ancestors(get_the_ID(), 'page'))->reverse();
+            $ancestors = collect(
+                get_ancestors(get_the_ID(), 'page')
+            )->reverse();
 
             if ($ancestors->isNotEmpty()) {
-            $ancestors->each(function ($item) {
-                $this->add(
-                get_the_title($item),
-                get_permalink($item),
-                $item
-                );
-            });
+                $ancestors->each(function ($item) {
+                    $this->add(
+                        get_the_title($item),
+                        get_permalink($item),
+                        $item
+                    );
+                });
             }
 
             return $this->add(
-            get_the_title(),
-            null,
-            get_the_ID()
+                get_the_title(),
+                null,
+                get_the_ID()
             );
         }
 
@@ -110,10 +117,10 @@ class Crumb
             $category = single_cat_title('', false);
 
             return $this->add(
-            $category,
-            null,
-            get_cat_ID($category),
-            true
+                $category,
+                null,
+                get_cat_ID($category),
+                true
             );
         }
 
@@ -121,37 +128,37 @@ class Crumb
             $tag = single_tag_title('', false);
 
             return $this->add(
-            $tag,
-            null,
-            get_term_by('name', $tag, 'post_tag')->term_id,
-            true
+                $tag,
+                null,
+                get_term_by('name', $tag, 'post_tag')->term_id,
+                true
             );
         }
 
         if (is_date()) {
             if (is_month()) {
-            return $this->add(
-                get_the_date('F Y'),
-                null,
-                null,
-                true
-            );
+                return $this->add(
+                    get_the_date('F Y'),
+                    null,
+                    null,
+                    true
+                );
             }
 
             if (is_year()) {
-            return $this->add(
-                get_the_date('Y'),
-                null,
-                null,
-                true
-            );
+                return $this->add(
+                    get_the_date('Y'),
+                    null,
+                    null,
+                    true
+                );
             }
 
             return $this->add(
-            get_the_date(),
-            null,
-            null,
-            true
+                get_the_date(),
+                null,
+                null,
+                true
             );
         }
 
@@ -159,36 +166,36 @@ class Crumb
             $term = single_term_title('', false);
 
             return $this->add(
-            $term,
-            null,
-            get_term_by('name', $term, get_query_var('taxonomy'))->term_id
+                $term,
+                null,
+                get_term_by('name', $term, get_query_var('taxonomy'))->term_id
             );
         }
 
         if (is_search()) {
             return $this->add(
-            sprintf($this->config['search'], get_search_query())
+                sprintf($this->config['search'], get_search_query())
             );
         }
 
         if (is_author()) {
             return $this->add(
-            sprintf($this->config['author'], get_the_author()),
-            null,
-            get_the_author_meta('ID'),
-            true
+                sprintf($this->config['author'], get_the_author()),
+                null,
+                get_the_author_meta('ID'),
+                true
             );
         }
 
         if (is_post_type_archive()) {
             return $this->add(
-            post_type_archive_title('', false)
+                post_type_archive_title('', false)
             );
         }
 
         if (is_404()) {
             return $this->add(
-            $this->config['not_found']
+                $this->config['not_found']
             );
         }
 
